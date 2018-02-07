@@ -1,0 +1,63 @@
+<?php
+session_start();
+use Aws\S3\S3Client;
+use Aws\S3\Exception\S3Exception;
+include("../includes/config.php");
+if($_POST['token_id'] != $_SESSION['token_id']) {
+	return false;
+}
+include("../includes/classes.php");
+$db = new mysqli($CONF['host'], $CONF['user'], $CONF['pass'], $CONF['name']);
+if ($db->connect_errno) {
+    echo "Failed to connect to MySQL: (" . $db->connect_errno . ") " . $db->connect_error;
+}
+$db->set_charset("utf8");
+
+$resultSettings = $db->query(getSettings()); 
+$settings = $resultSettings->fetch_assoc();
+
+// Attempt to set a custom default timezone
+if($settings['time'] == 0) {
+	date_default_timezone_set($settings['timezone']);
+}
+
+if($settings['as3']) {
+	require_once('../includes/vendor/autoload.php');
+	
+	$s3 = new S3Client(array(
+		'credentials'	=> array(
+			'key'		=> $settings['as3_key'],
+			'secret'	=> $settings['as3_secret']
+		),
+		'region'		=> $settings['as3_region'],
+		'version'		=> 'latest'
+	));
+}
+
+if(in_array($_POST['type'], array('0', '1', '2', '3'))) {
+	if(isset($_SESSION['username']) && isset($_SESSION['password']) || isset($_COOKIE['username']) && isset($_COOKIE['password'])) {
+		$loggedIn = new loggedIn();
+		$loggedIn->db = $db;
+		$loggedIn->url = $CONF['url'];
+		$loggedIn->username = (isset($_SESSION['username'])) ? $_SESSION['username'] : $_COOKIE['username'];
+		$loggedIn->password = (isset($_SESSION['password'])) ? $_SESSION['password'] : $_COOKIE['password'];
+		
+		$verify = $loggedIn->verify();
+
+		if($verify['username']) {
+			$feed = new feed();
+			$feed->db = $db;
+			$feed->url = $CONF['url'];
+			$feed->username = $verify['username'];
+			$feed->id = $verify['idu'];
+			
+			$result = $feed->delete($_POST['id'], $_POST['type']);
+			if($result)
+				echo 1;
+			else
+				echo 0;
+		}
+	}
+}
+mysqli_close($db);
+?>
