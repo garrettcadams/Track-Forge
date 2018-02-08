@@ -1,12 +1,12 @@
 <?php
 // Software Name
-$name = 'phpSound';
+$name = 'Trackforge';
 
 // Software Author
-$author = 'phpSound';
+$author = 'Trackforge';
 
 // Software URL
-$url = 'http://phpsound.com';
+$url = 'http://trsckforge.stream';
 
 // Software Version
 $version = '2.0.6';
